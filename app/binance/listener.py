@@ -9,6 +9,7 @@ from typing import Any
 
 import websockets
 from websockets import ConnectionClosed
+from websockets.exceptions import InvalidStatus
 
 from app.models.price import Price
 
@@ -61,6 +62,27 @@ class BinanceTickerListener:
                 backoff_s = 0.5
             except asyncio.CancelledError:
                 raise
+            except InvalidStatus as exc:
+                if exc.response.status_code == 451:
+                    logger.warning(
+                        "Binance WebSocket HTTP 451 (blocked from this host). "
+                        "REST polling supplies /price when api.binance.com allows it."
+                    )
+                else:
+                    logger.warning(
+                        "Binance WebSocket rejected: HTTP %s",
+                        exc.response.status_code,
+                        exc_info=True,
+                    )
+                if on_error:
+                    try:
+                        await on_error(exc)
+                    except Exception:
+                        pass
+                jitter = random.random() * 0.2
+                sleep_s = min(30.0, backoff_s) + jitter
+                backoff_s = min(30.0, backoff_s * 2.0)
+                await asyncio.sleep(sleep_s)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Binance WS reconnecting after error: %s", exc, exc_info=True)
                 if on_error:

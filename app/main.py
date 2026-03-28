@@ -7,9 +7,10 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from websockets.exceptions import InvalidStatus
 
 from app.binance.listener import BinanceTickerListener
-from app.binance.rest_seed import seed_prices_from_rest
+from app.binance.rest_seed import poll_binance_rest_loop
 from app.config import MAX_WEBSOCKET_CONNECTIONS, TRACKED_SYMBOLS
 from app.limiter import limiter
 from app.services.price_service import PriceService
@@ -53,6 +54,8 @@ def create_app() -> FastAPI:
         stop_event: asyncio.Event = app.state._stop_event
 
         async def on_listener_error(exc: Exception) -> None:
+            if isinstance(exc, InvalidStatus) and exc.response.status_code == 451:
+                return
             log.warning("Binance listener hook: %s", exc, exc_info=True)
 
         app.state._tasks = [
@@ -62,8 +65,8 @@ def create_app() -> FastAPI:
                 name="binance-listener",
             ),
             asyncio.create_task(
-                seed_prices_from_rest(price_service.ingest_queue, TRACKED_SYMBOLS),
-                name="binance-rest-seed",
+                poll_binance_rest_loop(price_service.ingest_queue, TRACKED_SYMBOLS, stop_event),
+                name="binance-rest-poll",
             ),
         ]
 
