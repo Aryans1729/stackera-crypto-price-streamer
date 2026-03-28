@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Price Stream</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <div>
+          <h1 class="title">Crypto Price Stream</h1>
+          <p class="subtitle">BTC / ETH / BNB vs USDT — FastAPI WebSocket</p>
+        </div>
+        <div class="status" id="status" aria-live="polite">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Disconnected</span>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="table-head">
+          <span>Symbol</span>
+          <span>Price</span>
+          <span>24h</span>
+          <span>Updated</span>
+        </div>
+        <div id="rows" class="table-body"></div>
+      </section>
+
+      <section class="footer">
+        <div class="hint mono">
+          <span class="pill">?ws=ws://127.0.0.1:8000/ws</span>
+          · single pair:
+          <span class="pill">?symbol=BTCUSDT</span>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

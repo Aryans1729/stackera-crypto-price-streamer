@@ -1,0 +1,8 @@
+from __future__ import annotations
+
+TRACKED_SYMBOLS = ("BTCUSDT", "ETHUSDT", "BNBUSDT")
+TRACKED_SYMBOLS_SET = frozenset(TRACKED_SYMBOLS)
+
+MAX_WEBSOCKET_CONNECTIONS: int = 100
+
+PRICE_RATE_LIMIT: str = "60/minute"
