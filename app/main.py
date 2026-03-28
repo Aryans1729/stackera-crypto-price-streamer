@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from contextlib import suppress
 
@@ -8,6 +9,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.binance.listener import BinanceTickerListener
+from app.binance.rest_seed import seed_prices_from_rest
 from app.config import MAX_WEBSOCKET_CONNECTIONS, TRACKED_SYMBOLS
 from app.limiter import limiter
 from app.services.price_service import PriceService
@@ -15,6 +17,8 @@ from app.websocket.manager import ConnectionManager
 from app.ws_slots import WebSocketSlotPool
 
 from app.api.routes import router as api_router
+
+log = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -49,13 +53,17 @@ def create_app() -> FastAPI:
         stop_event: asyncio.Event = app.state._stop_event
 
         async def on_listener_error(exc: Exception) -> None:
-            _ = exc
+            log.warning("Binance listener hook: %s", exc, exc_info=True)
 
         app.state._tasks = [
             asyncio.create_task(price_service.run(), name="price-service"),
             asyncio.create_task(
                 listener.run(out_queue=price_service.ingest_queue, on_error=on_listener_error, stop_event=stop_event),
                 name="binance-listener",
+            ),
+            asyncio.create_task(
+                seed_prices_from_rest(price_service.ingest_queue, TRACKED_SYMBOLS),
+                name="binance-rest-seed",
             ),
         ]
 

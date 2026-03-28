@@ -21,3 +21,12 @@ class Price(BaseModel):
         ts = datetime.fromtimestamp(event_ms / 1000.0, tz=timezone.utc)
         return cls(symbol=symbol, price=price, change_percent=change_percent, timestamp=ts)
 
+    @classmethod
+    def from_binance_rest_24hr(cls, payload: dict[str, Any]) -> "Price":
+        symbol = str(payload["symbol"])
+        price = float(payload["lastPrice"])
+        change_percent = float(payload["priceChangePercent"])
+        event_ms = int(payload["closeTime"])
+        ts = datetime.fromtimestamp(event_ms / 1000.0, tz=timezone.utc)
+        return cls(symbol=symbol, price=price, change_percent=change_percent, timestamp=ts)
+

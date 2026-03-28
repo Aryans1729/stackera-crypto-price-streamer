@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import random
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
@@ -10,6 +11,8 @@ import websockets
 from websockets import ConnectionClosed
 
 from app.models.price import Price
+
+logger = logging.getLogger(__name__)
 
 BINANCE_WS_SINGLE = "wss://stream.binance.com:9443/ws"
 BINANCE_WS_COMBINED = "wss://stream.binance.com:9443/stream"
@@ -59,6 +62,7 @@ class BinanceTickerListener:
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # noqa: BLE001
+                logger.warning("Binance WS reconnecting after error: %s", exc, exc_info=True)
                 if on_error:
                     try:
                         await on_error(exc)
@@ -77,6 +81,7 @@ class BinanceTickerListener:
         stop_event: asyncio.Event | None,
     ) -> None:
         url = self._url_builder(self._symbols)
+        logger.info("Binance WS connecting: %s", url)
 
         async with websockets.connect(
             url,
@@ -85,6 +90,7 @@ class BinanceTickerListener:
             close_timeout=5.0,
             max_queue=None,
         ) as ws:
+            logger.info("Binance WS connected")
             while True:
                 if stop_event and stop_event.is_set():
                     return
